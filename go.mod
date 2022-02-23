@@ -3,7 +3,6 @@ module github.com/cert-manager/webhook-example
 go 1.17
 
 require (
-	github.com/Azure/azure-sdk-for-go v61.6.0+incompatible
 	github.com/jetstack/cert-manager v1.7.0
 	github.com/miekg/dns v1.1.34
 	github.com/stretchr/testify v1.7.0
