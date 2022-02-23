@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -14,6 +16,70 @@ import (
 )
 
 var GroupName = os.Getenv("GROUP_NAME")
+
+func login(config customDNSProviderConfig) (string, error) {
+	buffer := bytes.NewBufferString(fmt.Sprintf("{\"action\": \"login\", \"param\":{ \"apikey\":\"%s\", \"apipassword\":\"%s\",\"customernumber\":\"%s\"\n}}", config.ApiKey, config.ApiPw, config.CustomerNumber))
+	res, err := http.Post("https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON", "application/json", buffer)
+	if err != nil {
+		return "", err
+	}
+
+	type response struct {
+		ResponseData string `json:"responsedata"`
+	}
+
+	var data response
+
+	decoder := json.NewDecoder(res.Body)
+	err = decoder.Decode(&data)
+	if err != nil {
+		return "", err
+	}
+
+	return data.ResponseData, nil
+}
+
+func logout(config customDNSProviderConfig, token string) error {
+	buffer := bytes.NewBufferString(fmt.Sprintf("{\"action\": \"logout\", \"param\":{ \"apikey\":\"%s\", \"apisessionid\":\"%s\",\"customernumber\":\"%s\"\n}}", config.ApiKey, token, config.CustomerNumber))
+	res, err := http.Post("https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON", "application/json", buffer)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != http.StatusFound {
+		return fmt.Errorf("failed to set txt record")
+	}
+
+	return nil
+}
+
+func setRecord(config customDNSProviderConfig, txtRecord, hostname, token, domainname string) error {
+	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"clientrequestid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"\",\n          \"hostname\": \"%s.\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"false\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, token, domainname, hostname, txtRecord))
+	res, err := http.Post("https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON", "application/json", buffer)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != http.StatusFound {
+		return fmt.Errorf("failed to set txt record")
+	}
+
+	return nil
+}
+
+func removeRecord(config customDNSProviderConfig, txtRecord, hostname, token, domainname string) error {
+	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"clientrequestid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"\",\n          \"hostname\": \"%s.\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"true\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, token, domainname, hostname, txtRecord))
+	res, err := http.Post("https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON", "application/json", buffer)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != http.StatusFound {
+		return fmt.Errorf("failed to remove txt record")
+	}
+
+	return nil
+}
 
 func main() {
 	if GroupName == "" {
@@ -66,6 +132,9 @@ type customDNSProviderConfig struct {
 
 	//Email           string `json:"email"`
 	//APIKeySecretRef v1alpha1.SecretKeySelector `json:"apiKeySecretRef"`
+	ApiKey         string `json:"apiKey"`
+	ApiPw          string `json:"apiPw"`
+	CustomerNumber string `json:"customerNumber"`
 }
 
 // Name is used as the name for this DNS solver when referencing it on the ACME
@@ -75,7 +144,7 @@ type customDNSProviderConfig struct {
 // within a single webhook deployment**.
 // For example, `cloudflare` may be used as the name of a solver.
 func (c *customDNSProviderSolver) Name() string {
-	return "my-custom-solver"
+	return "netcup"
 }
 
 // Present is responsible for actually presenting the DNS record with the
@@ -89,11 +158,17 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	// TODO: do something more useful with the decoded configuration
-	fmt.Printf("Decoded configuration %v", cfg)
+	token, err := login(cfg)
+	if err != nil {
+		return err
+	}
 
-	// TODO: add code that sets a record in the DNS provider's console
-	return nil
+	err = setRecord(cfg, ch.Key, ch.ResolvedFQDN, token, ch.DNSName)
+	if err != nil {
+		return err
+	}
+
+	return logout(cfg, token)
 }
 
 // CleanUp should delete the relevant TXT record from the DNS provider console.
@@ -103,8 +178,22 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
 func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
-	// TODO: add code that deletes a record from the DNS provider's console
-	return nil
+	cfg, err := loadConfig(ch.Config)
+	if err != nil {
+		return err
+	}
+
+	token, err := login(cfg)
+	if err != nil {
+		return err
+	}
+
+	err = removeRecord(cfg, ch.Key, ch.ResolvedFQDN, token, ch.DNSName)
+	if err != nil {
+		return err
+	}
+
+	return logout(cfg, token)
 }
 
 // Initialize will be called when the webhook first starts.
