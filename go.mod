@@ -3,11 +3,12 @@ module github.com/cert-manager/webhook-example
 go 1.17
 
 require (
-	github.com/jetstack/cert-manager v1.7.0
+	github.com/jetstack/cert-manager v1.7.1
 	github.com/miekg/dns v1.1.34
 	github.com/stretchr/testify v1.7.0
 	k8s.io/apiextensions-apiserver v0.23.1
 	k8s.io/client-go v0.23.1
+	k8s.io/klog/v2 v2.30.0
 )
 
 require (
@@ -91,7 +92,6 @@ require (
 	k8s.io/apimachinery v0.23.1 // indirect
 	k8s.io/apiserver v0.23.1 // indirect
 	k8s.io/component-base v0.23.1 // indirect
-	k8s.io/klog/v2 v2.30.0 // indirect
 	k8s.io/kube-aggregator v0.23.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65 // indirect
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b // indirect
