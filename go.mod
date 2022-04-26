@@ -3,7 +3,7 @@ module github.com/cert-manager/webhook-example
 go 1.17
 
 require (
-	github.com/jetstack/cert-manager v1.7.1
+	github.com/jetstack/cert-manager v1.7.0
 	github.com/miekg/dns v1.1.34
 	github.com/stretchr/testify v1.7.0
 	k8s.io/apiextensions-apiserver v0.23.1
@@ -84,6 +84,7 @@ require (
 	google.golang.org/genproto v0.0.0-20220118154757-00ab72f36ad5 // indirect
 	google.golang.org/grpc v1.43.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
