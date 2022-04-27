@@ -20,6 +20,13 @@ import (
 
 var GroupName = os.Getenv("GROUP_NAME")
 
+func reverseArray(arr []string) []string {
+	for i, j := 0, len(arr)-1; i < j; i, j = i+1, j-1 {
+		arr[i], arr[j] = arr[j], arr[i]
+	}
+	return arr
+}
+
 func login(config customDNSProviderConfig) (string, error) {
 	klog.Info("Login to netcup")
 	buffer := bytes.NewBufferString(fmt.Sprintf("{\"action\": \"login\", \"param\":{ \"apikey\":\"%s\", \"apipassword\":\"%s\",\"customernumber\":\"%s\"\n}}", config.ApiKey, config.ApiPw, config.CustomerNumber))
@@ -62,16 +69,15 @@ func logout(config customDNSProviderConfig, token string) error {
 
 func setRecord(config customDNSProviderConfig, txtRecord, token, domainname, hostname string) error {
 	klog.Info("Set dns record for domain " + domainname)
-	splitHostname := strings.Split(hostname, ".")
-	splitDomainName := strings.Split(domainname, ".")
+	splitDomainName := strings.Split(strings.TrimSuffix("_acme-challenge.releases.jinya.de.", "."), ".")
 	host := ""
-	if len(splitHostname) == 4 {
-		host = strings.Join(splitHostname[2:], ".")
+	if len(splitDomainName) == 4 {
+		host = strings.Join(splitDomainName[0:2], ".")
 	} else {
-		host = strings.Join(splitHostname[1:], ".")
+		host = splitDomainName[0]
 	}
-	domain := splitDomainName[0]
-	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"\",\n          \"hostname\": \"%s.\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"false\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, token, domain, host, txtRecord))
+	lastTwoSegments := reverseArray(reverseArray(splitDomainName)[0:2])
+	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"\",\n          \"hostname\": \"%s\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"false\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, "token", strings.Join(lastTwoSegments, "."), host, txtRecord))
 	res, err := http.Post("https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON", "application/json", buffer)
 	if err != nil {
 		return err
@@ -91,16 +97,15 @@ func setRecord(config customDNSProviderConfig, txtRecord, token, domainname, hos
 
 func removeRecord(config customDNSProviderConfig, txtRecord, token, domainname, hostname string) error {
 	klog.Info("Remove dns record for domain " + domainname)
-	splitHostname := strings.Split(hostname, ".")
-	splitDomainName := strings.Split(domainname, ".")
+	splitDomainName := strings.Split(strings.TrimSuffix("_acme-challenge.releases.jinya.de.", "."), ".")
 	host := ""
-	if len(splitHostname) == 4 {
-		host = strings.Join(splitHostname[2:], ".")
+	if len(splitDomainName) == 4 {
+		host = strings.Join(splitDomainName[0:2], ".")
 	} else {
-		host = strings.Join(splitHostname[1:], ".")
+		host = splitDomainName[0]
 	}
-	domain := splitDomainName[0]
-	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"\",\n          \"hostname\": \"%s.\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"true\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, token, domain, host, txtRecord))
+	lastTwoSegments := reverseArray(reverseArray(splitDomainName)[0:2])
+	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"\",\n          \"hostname\": \"%s\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"true\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, "token", strings.Join(lastTwoSegments, "."), host, txtRecord))
 	res, err := http.Post("https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON", "application/json", buffer)
 	if err != nil {
 		return err
