@@ -69,7 +69,7 @@ func logout(config customDNSProviderConfig, token string) error {
 
 func setRecord(config customDNSProviderConfig, txtRecord, token, domainname string) error {
 	klog.Info("Set dns record for domain " + domainname)
-	splitDomainName := strings.Split(strings.TrimSuffix("_acme-challenge.releases.jinya.de.", "."), ".")
+	splitDomainName := strings.Split(strings.TrimSuffix(domainname, "."), ".")
 	host := ""
 	if len(splitDomainName) == 4 {
 		host = strings.Join(splitDomainName[0:2], ".")
@@ -97,7 +97,7 @@ func setRecord(config customDNSProviderConfig, txtRecord, token, domainname stri
 
 func removeRecord(config customDNSProviderConfig, txtRecord, token, domainname string) error {
 	klog.Info("Remove dns record for domain " + domainname)
-	splitDomainName := strings.Split(strings.TrimSuffix("_acme-challenge.releases.jinya.de.", "."), ".")
+	splitDomainName := strings.Split(strings.TrimSuffix(domainname, "."), ".")
 	host := ""
 	if len(splitDomainName) == 4 {
 		host = strings.Join(splitDomainName[0:2], ".")
@@ -107,7 +107,7 @@ func removeRecord(config customDNSProviderConfig, txtRecord, token, domainname s
 	lastTwoSegments := reverseArray(reverseArray(splitDomainName)[0:2])
 	domain := strings.Join(lastTwoSegments, ".")
 
-	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"infoDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\" \n}\n", config.ApiKey, config.CustomerNumber, token, domain, host, txtRecord))
+	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"infoDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\" \n}\n", config.ApiKey, config.CustomerNumber, token, domain))
 	res, err := http.Post("https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON", "application/json", buffer)
 
 	type infoDnsRecords struct {
