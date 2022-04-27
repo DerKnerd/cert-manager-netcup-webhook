@@ -67,7 +67,7 @@ func logout(config customDNSProviderConfig, token string) error {
 	return nil
 }
 
-func setRecord(config customDNSProviderConfig, txtRecord, token, domainname, hostname string) error {
+func setRecord(config customDNSProviderConfig, txtRecord, token, domainname string) error {
 	klog.Info("Set dns record for domain " + domainname)
 	splitDomainName := strings.Split(strings.TrimSuffix("_acme-challenge.releases.jinya.de.", "."), ".")
 	host := ""
@@ -77,7 +77,7 @@ func setRecord(config customDNSProviderConfig, txtRecord, token, domainname, hos
 		host = splitDomainName[0]
 	}
 	lastTwoSegments := reverseArray(reverseArray(splitDomainName)[0:2])
-	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"\",\n          \"hostname\": \"%s\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"false\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, "token", strings.Join(lastTwoSegments, "."), host, txtRecord))
+	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"\",\n          \"hostname\": \"%s\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"false\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, token, strings.Join(lastTwoSegments, "."), host, txtRecord))
 	res, err := http.Post("https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON", "application/json", buffer)
 	if err != nil {
 		return err
@@ -86,7 +86,7 @@ func setRecord(config customDNSProviderConfig, txtRecord, token, domainname, hos
 	if res.StatusCode < 300 && res.StatusCode >= 200 {
 		body, err := ioutil.ReadAll(res.Body)
 		if err == nil {
-			return fmt.Errorf("failed to set txt record %s %s: %s", domainname, hostname, string(body))
+			return fmt.Errorf("failed to set txt record %s: %s", domainname, string(body))
 		}
 
 		return fmt.Errorf("failed to set txt record")
@@ -95,7 +95,7 @@ func setRecord(config customDNSProviderConfig, txtRecord, token, domainname, hos
 	return nil
 }
 
-func removeRecord(config customDNSProviderConfig, txtRecord, token, domainname, hostname string) error {
+func removeRecord(config customDNSProviderConfig, txtRecord, token, domainname string) error {
 	klog.Info("Remove dns record for domain " + domainname)
 	splitDomainName := strings.Split(strings.TrimSuffix("_acme-challenge.releases.jinya.de.", "."), ".")
 	host := ""
@@ -105,7 +105,7 @@ func removeRecord(config customDNSProviderConfig, txtRecord, token, domainname, 
 		host = splitDomainName[0]
 	}
 	lastTwoSegments := reverseArray(reverseArray(splitDomainName)[0:2])
-	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"\",\n          \"hostname\": \"%s\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"true\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, "token", strings.Join(lastTwoSegments, "."), host, txtRecord))
+	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"\",\n          \"hostname\": \"%s\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"true\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, token, strings.Join(lastTwoSegments, "."), host, txtRecord))
 	res, err := http.Post("https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON", "application/json", buffer)
 	if err != nil {
 		return err
