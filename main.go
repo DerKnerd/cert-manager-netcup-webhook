@@ -60,16 +60,17 @@ func logout(config customDNSProviderConfig, token string) error {
 	return nil
 }
 
-func setRecord(config customDNSProviderConfig, txtRecord, token, domainname string) error {
+func setRecord(config customDNSProviderConfig, txtRecord, token, domainname, hostname string) error {
 	klog.Info("Set dns record for domain " + domainname)
+	splitHostname := strings.Split(hostname, ".")
 	splitDomainName := strings.Split(domainname, ".")
-	host := strings.Join(splitDomainName[1:], ".")
-	domain := ""
-	if len(splitDomainName) == 2 {
-		domain = "@"
+	host := ""
+	if len(splitHostname) == 4 {
+		host = strings.Join(splitHostname[2:], ".")
 	} else {
-		domain = splitDomainName[0]
+		host = strings.Join(splitHostname[1:], ".")
 	}
+	domain := splitDomainName[0]
 	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"\",\n          \"hostname\": \"%s.\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"false\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, token, domain, host, txtRecord))
 	res, err := http.Post("https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON", "application/json", buffer)
 	if err != nil {
@@ -79,7 +80,7 @@ func setRecord(config customDNSProviderConfig, txtRecord, token, domainname stri
 	if res.StatusCode < 300 && res.StatusCode >= 200 {
 		body, err := ioutil.ReadAll(res.Body)
 		if err == nil {
-			return fmt.Errorf("failed to set txt record %s: %s", domainname, string(body))
+			return fmt.Errorf("failed to set txt record %s %s: %s", domainname, hostname, string(body))
 		}
 
 		return fmt.Errorf("failed to set txt record")
@@ -88,16 +89,17 @@ func setRecord(config customDNSProviderConfig, txtRecord, token, domainname stri
 	return nil
 }
 
-func removeRecord(config customDNSProviderConfig, txtRecord, token, domainname string) error {
+func removeRecord(config customDNSProviderConfig, txtRecord, token, domainname, hostname string) error {
 	klog.Info("Remove dns record for domain " + domainname)
+	splitHostname := strings.Split(hostname, ".")
 	splitDomainName := strings.Split(domainname, ".")
-	host := strings.Join(splitDomainName[1:], ".")
-	domain := ""
-	if len(splitDomainName) == 2 {
-		domain = "@"
+	host := ""
+	if len(splitHostname) == 4 {
+		host = strings.Join(splitHostname[2:], ".")
 	} else {
-		domain = splitDomainName[0]
+		host = strings.Join(splitHostname[1:], ".")
 	}
+	domain := splitDomainName[0]
 	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"\",\n          \"hostname\": \"%s.\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"true\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, token, domain, host, txtRecord))
 	res, err := http.Post("https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON", "application/json", buffer)
 	if err != nil {
@@ -199,7 +201,7 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	err = setRecord(cfg, ch.Key, token, ch.ResolvedFQDN)
+	err = setRecord(cfg, ch.Key, token, ch.ResolvedFQDN, ch.DNSName)
 	if err != nil {
 		klog.Error(err)
 		return err
@@ -227,7 +229,7 @@ func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	err = removeRecord(cfg, ch.Key, token, ch.ResolvedFQDN)
+	err = removeRecord(cfg, ch.Key, token, ch.ResolvedFQDN, ch.DNSName)
 	if err != nil {
 		klog.Error(err)
 		return err
