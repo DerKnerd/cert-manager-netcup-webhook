@@ -83,7 +83,7 @@ func setRecord(config customDNSProviderConfig, txtRecord, token, domainname stri
 		return err
 	}
 
-	if res.StatusCode < 300 && res.StatusCode >= 200 {
+	if !(res.StatusCode < 300 && res.StatusCode >= 200) {
 		body, err := ioutil.ReadAll(res.Body)
 		if err == nil {
 			return fmt.Errorf("failed to set txt record %s: %s", domainname, string(body))
@@ -105,13 +105,55 @@ func removeRecord(config customDNSProviderConfig, txtRecord, token, domainname s
 		host = splitDomainName[0]
 	}
 	lastTwoSegments := reverseArray(reverseArray(splitDomainName)[0:2])
-	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"\",\n          \"hostname\": \"%s\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"true\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, token, strings.Join(lastTwoSegments, "."), host, txtRecord))
+	domain := strings.Join(lastTwoSegments, ".")
+
+	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"infoDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\" \n}\n", config.ApiKey, config.CustomerNumber, token, domain, host, txtRecord))
 	res, err := http.Post("https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON", "application/json", buffer)
+
+	type infoDnsRecords struct {
+		ResponseData struct {
+			DnsRecords []struct {
+				Id       string `json:"id"`
+				Hostname string `json:"hostname"`
+			} `json:"dnsrecords"`
+		} `json:"responsedata"`
+	}
+
+	if !(res.StatusCode < 300 && res.StatusCode >= 200) {
+		body, err := ioutil.ReadAll(res.Body)
+		if err == nil {
+			return fmt.Errorf("failed to remove txt record %s: %s", domainname, string(body))
+		}
+
+		return fmt.Errorf("failed to remove txt record")
+	}
+
+	var result *infoDnsRecords
+	decoder := json.NewDecoder(res.Body)
+	err = decoder.Decode(result)
+	if err == nil {
+		return fmt.Errorf("failed to remove txt record %s", domainname)
+	}
+
+	id := ""
+	for _, item := range result.ResponseData.DnsRecords {
+		if item.Hostname == host {
+			id = item.Id
+			break
+		}
+	}
+
+	if id == "" {
+		return fmt.Errorf("failed to remove txt record %s", domainname)
+	}
+
+	buffer = bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"%s\",\n          \"hostname\": \"%s\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"true\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, token, domain, id, host, txtRecord))
+	res, err = http.Post("https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON", "application/json", buffer)
 	if err != nil {
 		return err
 	}
 
-	if res.StatusCode < 300 && res.StatusCode >= 200 {
+	if !(res.StatusCode < 300 && res.StatusCode >= 200) {
 		body, err := ioutil.ReadAll(res.Body)
 		if err == nil {
 			return fmt.Errorf("failed to remove txt record %s: %s", domainname, string(body))
