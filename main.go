@@ -115,6 +115,7 @@ func removeRecord(config customDNSProviderConfig, txtRecord, token, domainname s
 			DnsRecords []struct {
 				Id       string `json:"id"`
 				Hostname string `json:"hostname"`
+				Type     string `json:"type"`
 			} `json:"dnsrecords"`
 		} `json:"responsedata"`
 	}
@@ -137,7 +138,7 @@ func removeRecord(config customDNSProviderConfig, txtRecord, token, domainname s
 
 	id := ""
 	for _, item := range result.ResponseData.DnsRecords {
-		if item.Hostname == host {
+		if item.Hostname == host && item.Type == "TXT" {
 			id = item.Id
 			break
 		}
