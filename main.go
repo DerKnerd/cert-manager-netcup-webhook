@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"k8s.io/klog/v2"
 	"net/http"
 	"os"
@@ -75,7 +76,12 @@ func setRecord(config customDNSProviderConfig, txtRecord, hostname, token, domai
 		return err
 	}
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode < 300 && res.StatusCode >= 200 {
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return fmt.Errorf("failed to set txt record: %s", string(body))
+		}
+
 		return fmt.Errorf("failed to set txt record")
 	}
 
@@ -98,7 +104,12 @@ func removeRecord(config customDNSProviderConfig, txtRecord, hostname, token, do
 		return err
 	}
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode < 300 && res.StatusCode >= 200 {
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return fmt.Errorf("failed to remove txt record: %s", string(body))
+		}
+
 		return fmt.Errorf("failed to remove txt record")
 	}
 
