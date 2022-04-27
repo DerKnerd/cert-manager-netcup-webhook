@@ -60,7 +60,7 @@ func logout(config customDNSProviderConfig, token string) error {
 	return nil
 }
 
-func setRecord(config customDNSProviderConfig, txtRecord, hostname, token, domainname string) error {
+func setRecord(config customDNSProviderConfig, txtRecord, token, domainname string) error {
 	klog.Info("Set dns record for domain " + domainname)
 	splitDomainName := strings.Split(domainname, ".")
 	host := strings.Join(splitDomainName[1:], ".")
@@ -88,7 +88,7 @@ func setRecord(config customDNSProviderConfig, txtRecord, hostname, token, domai
 	return nil
 }
 
-func removeRecord(config customDNSProviderConfig, txtRecord, hostname, token, domainname string) error {
+func removeRecord(config customDNSProviderConfig, txtRecord, token, domainname string) error {
 	klog.Info("Remove dns record for domain " + domainname)
 	splitDomainName := strings.Split(domainname, ".")
 	host := strings.Join(splitDomainName[1:], ".")
@@ -199,7 +199,7 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	err = setRecord(cfg, ch.Key, ch.ResolvedFQDN, token, ch.DNSName)
+	err = setRecord(cfg, ch.Key, token, ch.ResolvedFQDN)
 	if err != nil {
 		klog.Error(err)
 		return err
@@ -227,7 +227,7 @@ func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	err = removeRecord(cfg, ch.Key, ch.ResolvedFQDN, token, ch.DNSName)
+	err = removeRecord(cfg, ch.Key, token, ch.ResolvedFQDN)
 	if err != nil {
 		klog.Error(err)
 		return err
