@@ -83,13 +83,13 @@ func setRecord(config customDNSProviderConfig, txtRecord, token, domainname stri
 		return err
 	}
 
-	if !(res.StatusCode < 300 && res.StatusCode >= 200) {
+	if res.StatusCode >= 300 && res.StatusCode < 200 {
 		body, err := ioutil.ReadAll(res.Body)
 		if err == nil {
 			return fmt.Errorf("failed to set txt record %s: %s", domainname, string(body))
 		}
 
-		return fmt.Errorf("failed to set txt record")
+		return fmt.Errorf("failed to set txt record %d", res.StatusCode)
 	}
 
 	return nil
@@ -119,13 +119,13 @@ func removeRecord(config customDNSProviderConfig, txtRecord, token, domainname s
 		} `json:"responsedata"`
 	}
 
-	if !(res.StatusCode < 300 && res.StatusCode >= 200) {
+	if res.StatusCode >= 300 && res.StatusCode < 200 {
 		body, err := ioutil.ReadAll(res.Body)
 		if err == nil {
 			return fmt.Errorf("failed to remove txt record %s: %s", domainname, string(body))
 		}
 
-		return fmt.Errorf("failed to remove txt record")
+		return fmt.Errorf("failed to remove txt record: %d", res.StatusCode)
 	}
 
 	var result *infoDnsRecords
@@ -153,13 +153,13 @@ func removeRecord(config customDNSProviderConfig, txtRecord, token, domainname s
 		return err
 	}
 
-	if !(res.StatusCode < 300 && res.StatusCode >= 200) {
+	if res.StatusCode >= 300 && res.StatusCode < 200 {
 		body, err := ioutil.ReadAll(res.Body)
 		if err == nil {
 			return fmt.Errorf("failed to remove txt record %s: %s", domainname, string(body))
 		}
 
-		return fmt.Errorf("failed to remove txt record")
+		return fmt.Errorf("failed to remove txt record %d", res.StatusCode)
 	}
 
 	return nil
