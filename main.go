@@ -7,6 +7,7 @@ import (
 	"k8s.io/klog/v2"
 	"net/http"
 	"os"
+	"strings"
 
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	//"k8s.io/client-go/kubernetes"
@@ -60,13 +61,21 @@ func logout(config customDNSProviderConfig, token string) error {
 
 func setRecord(config customDNSProviderConfig, txtRecord, hostname, token, domainname string) error {
 	klog.Info("Set dns record for domain " + domainname)
-	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"\",\n          \"hostname\": \"%s.\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"false\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, token, domainname, hostname, txtRecord))
+	splitDomainName := strings.Split(domainname, ".")
+	host := strings.Join(splitDomainName[1:], ".")
+	domain := ""
+	if len(splitDomainName) == 2 {
+		domain = "@"
+	} else {
+		domain = splitDomainName[0]
+	}
+	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"\",\n          \"hostname\": \"%s.\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"false\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, token, domain, host, txtRecord))
 	res, err := http.Post("https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON", "application/json", buffer)
 	if err != nil {
 		return err
 	}
 
-	if res.StatusCode != http.StatusFound {
+	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to set txt record")
 	}
 
@@ -75,13 +84,21 @@ func setRecord(config customDNSProviderConfig, txtRecord, hostname, token, domai
 
 func removeRecord(config customDNSProviderConfig, txtRecord, hostname, token, domainname string) error {
 	klog.Info("Remove dns record for domain " + domainname)
-	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"\",\n          \"hostname\": \"%s.\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"true\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, token, domainname, hostname, txtRecord))
+	splitDomainName := strings.Split(domainname, ".")
+	host := strings.Join(splitDomainName[1:], ".")
+	domain := ""
+	if len(splitDomainName) == 2 {
+		domain = "@"
+	} else {
+		domain = splitDomainName[0]
+	}
+	buffer := bytes.NewBufferString(fmt.Sprintf("{\n  \"action\": \"updateDnsRecords\",\n  \"param\": {\n    \"apikey\": \"%s\",\n    \"customernumber\": \"%s\",\n    \"apisessionid\": \"%s\",\n    \"domainname\": \"%s\",\n    \"dnsrecordset\": {\n      \"dnsrecords\": [\n        {\n          \"id\": \"\",\n          \"hostname\": \"%s.\",\n          \"type\": \"TXT\",\n          \"priority\": \"\",\n          \"destination\": \"%s\",\n          \"deleterecord\": \"true\",\n          \"state\": \"yes\"\n        }\n      ]\n    }\n  }\n}\n", config.ApiKey, config.CustomerNumber, token, domain, host, txtRecord))
 	res, err := http.Post("https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON", "application/json", buffer)
 	if err != nil {
 		return err
 	}
 
-	if res.StatusCode != http.StatusFound {
+	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to remove txt record")
 	}
 
