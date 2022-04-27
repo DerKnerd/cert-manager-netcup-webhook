@@ -206,7 +206,7 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	err = setRecord(cfg, ch.Key, token, ch.ResolvedFQDN, ch.DNSName)
+	err = setRecord(cfg, ch.Key, token, ch.ResolvedFQDN)
 	if err != nil {
 		klog.Error(err)
 		return err
@@ -234,7 +234,7 @@ func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	err = removeRecord(cfg, ch.Key, token, ch.ResolvedFQDN, ch.DNSName)
+	err = removeRecord(cfg, ch.Key, token, ch.ResolvedFQDN)
 	if err != nil {
 		klog.Error(err)
 		return err
