@@ -247,6 +247,7 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		klog.Error(err)
 		return err
 	}
+	defer logout(cfg, token)
 
 	err = setRecord(cfg, ch.Key, token, ch.ResolvedFQDN)
 	if err != nil {
@@ -254,7 +255,7 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	return logout(cfg, token)
+	return nil
 }
 
 // CleanUp should delete the relevant TXT record from the DNS provider console.
@@ -275,6 +276,7 @@ func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		klog.Error(err)
 		return err
 	}
+	defer logout(cfg, token)
 
 	err = removeRecord(cfg, ch.Key, token, ch.ResolvedFQDN)
 	if err != nil {
@@ -282,7 +284,7 @@ func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	return logout(cfg, token)
+	return nil
 }
 
 // Initialize will be called when the webhook first starts.
