@@ -27,7 +27,9 @@ func login(config customDNSProviderConfig) (string, error) {
 	}
 
 	type response struct {
-		ResponseData string `json:"responsedata"`
+		ResponseData struct {
+			ApiSessionId string `json:"apisessionid"`
+		} `json:"responsedata"`
 	}
 
 	var data response
@@ -38,7 +40,7 @@ func login(config customDNSProviderConfig) (string, error) {
 		return "", err
 	}
 
-	return data.ResponseData, nil
+	return data.ResponseData.ApiSessionId, nil
 }
 
 func logout(config customDNSProviderConfig, token string) error {
